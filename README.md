@@ -185,3 +185,60 @@ Because the load balancer is aware of the specifications of these protocols, it 
 * Weighted Round Robin: like round-robin, but servers may have unequal weighting due to capacity differences
 * Fewest connections: routing to the server with the fewest active connections/sessions
 * Lowest response time: load balancer pings servers and keeps track of response time, routing to the current fastest-responding server
+
+### Cache
+A **cache** stores a subset of data in temporary, high-speed memory in order to serve responses faster and take load off of the larger, fully-persistent data stores.
+
+#### Cache Speed
+
+Caches can provide faster responses for a few reasons:
+* caches use a faster storage medium - as a cache does not have to worry about achieving true persistence or storing the long tail of infrequently accessed data, caches can use smaller, faster, more volatile storage - RAM can be more than 10x or 20x as fast as an SSD and more than 10,000x as fast as an HDD
+* caches do not need to support complex reads and writes - reads are a hashed key-value lookup, and writes do not need to lock on anything except the key being written to
+* caches are often located physically closer to the client or the application, reducing latency - because caches do not need to be the permanent datastore, they can be easily brought down, spun up, and moved.
+It is common to run a cache in the same compute node as the application using it, or even in the same process.
+
+#### Cache Location
+Caches can be located anywhere including:
+* on the client side, to reduce the number of requests submitted
+* at the web server or gateway level, to reduce the number of requests forwarded to the backend services
+* at the backend service level, to reduce computation or database queries
+* at the database level - database caches are usually deeply integrated with the database itself and not easily observed by clients
+
+#### Cache Terminology
+* Cache Hit: requested data is found in cache and returned without needing more expensive operations
+* Cache Miss: requested data is not found in cache, requiring further requests and computations to respond
+* Cache Hit Ratio: cache hits divided by cache accesses
+* Cache Write Policy: cache behavior during a write operation
+* Cache Read Policy: cache behavior during a read operation
+* Cache Replacement Policy: policy for removing cache entries when the cache is full
+* Cache Invalidation: process by which cache entries are marked as no longer valid
+* Time To Live (TTL): How long a cache entry can sit unchanged before being marked for invalidation or replacement
+* Cache Coherence/Consistency: how a multi-node cache manages having the same data for the same keys across all cache nodes
+
+#### Cache Write Policies
+
+##### Write-Through
+A write sent to a server is written to both the database and the cache before a success message is sent to the client.
+
+This is ideal for applications where data is commonly read just after writing.
+
+If the data is not commonly read just after writing, hit ration would be low.
+Depending on latencies to the cache and DB and the server's ability to parallelize the writes, this may cause increased latency on writes.
+
+##### Write-Around
+A write sent to the server is written only to the database before a success message is sent to the client.
+When a read comes in with a cache miss, the data is read from the database, written to the cache, and returned to the client.
+
+This is ideal for applications where data is read multiple times in succession.
+
+If the data is usually read just once in a given a period of time, cache hit ratio would be low.
+Latency may be increased on the first read, though generally cache read times are much faster than than database reads, so clients may not notice.
+
+##### Write-Back/Write-Behind
+A write sent to the server is written only to the cache before a success message is sent to the client.
+A plugin or other custom application is used to persist from the cache to the database.
+
+This introduces consistency issues and potential data loss scenarios if a cache entry is lost before being persisted.
+This also makes it harder to apply custom application logic before persistence.
+
+A write-back cache approach would be more commonly found as a specialized component within a database to increase write performance, rather than exposed for generalized usage.
