@@ -145,3 +145,43 @@ This also implies a need to balance the partitions - if you split into two table
 
 A more complete form of horizontal partitioning is **sharding**, in which you duplicate the same schema across multiple database instances which do not interact with one another.
 You may store users in different databases by their country or region, in order to reduce each database's size and provide a database located closer to the users for latency or data sovereignty compliance.
+
+## Fundamental Components
+
+### Web Servers
+A **web server** sits at the front edge of a system, acting as the first intermediary between clients and backend services.
+Web servers are largely stateless.
+A simple web server may just serve up static website pages and assets without needing to make further requests to backend services.
+More complex web servers may also serve a multitude of functions which make up the role of what is generally called an **API Gateway**.
+
+* Request routing: determining from static or dynamic rules (such as feature flippers) which backend servers each request should be routed to
+* Request deduplication
+* Network session management
+* Authentication and authorization
+* Abuse detection: malicious traffic or usage patterns, such as DDoS attacks
+* Throttling/Rate Limiting
+* Load Shedding: essentially throttling due to current load on backend servers, rather than predetermined limits
+* Response Caching
+* TLS/SSL encryption and termination
+* Usage metrics and logging
+
+Web servers may also cover some of the responsibilities of a reverse proxy and/or a load balancer
+
+### Load Balancer
+**Load balancers** often sit in front of the web server layer, but serve much more specialized functions and may even run on their own dedicated hardware.
+
+#### Layer 4 Load Balancer
+A layer 4 load balancer can only route traffic based on data known to OSI transport layer protocols: TCP, UDP, QUIC, etc.
+For a TCP connection, the load balancer can only open a TCP connection to an available server and forward all the data through the socket - it does not know which high-level protocol is being spoken over the TCP connection, so cannot effectively do any transformation of the data.
+L4 load balancing is also known as connection or session-level load balancing.
+
+#### Layer 7 Load Balancer
+A layer 7 load balancer is aware of OSI application layer protocols, such as DNS, HTTP/HTTPS, gRPC, FTP, SSH, NFS, etc.
+Because the load balancer is aware of the specifications of these protocols, it can route traffic or even rewrite the data according to attributes exposed by these protocols such as HTTP headers and cookies.
+
+#### Load Balancing Algorithms
+* Waterfall: prioritize the geographically closest server, then if that one is at capacity, go to the next-closest, and so on
+* Round Robin: rotating through the servers evenly in order
+* Weighted Round Robin: like round-robin, but servers may have unequal weighting due to capacity differences
+* Fewest connections: routing to the server with the fewest active connections/sessions
+* Lowest response time: load balancer pings servers and keeps track of response time, routing to the current fastest-responding server
